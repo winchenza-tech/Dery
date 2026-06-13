@@ -9,12 +9,12 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
 genai.configure(api_key=GEMINI_KEY)
-# Gemini 2.5 Flash modeli tanimlandi
+# Gemini 2.5 Flash modeli
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 def metni_temizle(metin):
     if metin:
-        # Kodun ve yapay zekanin hicbir yerinde yildiz sembolu kalmamasini garanti eder
+        # Mesajlarda yildiz sembolu kalmamasını garanti eder
         return metin.replace(chr(42), '')
     return ""
 
@@ -70,7 +70,6 @@ async def sor_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        # Isteginize gore durum mesaji guncellendi
         bilgi_mesaji = await update.message.reply_text("Berat gibi düşünüyorum... 🤔⏳")
 
         girdi_icerigi = []
@@ -98,29 +97,30 @@ async def sor_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(temiz_cevap)
 
     except Exception as e:
-        await update.message.reply_text(f"⚠️ Gemini API Hatası:\n`{str(e)[:500]}`", parse_mode='Markdown')
+        await update.message.reply_text(f"⚠️ Gemini API Hatası:\n{str(e)[:500]}")
 
 
 async def berat_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    kullanici_adi = user.username
-    ad = user.first_name
-    
-    is_zenithar = False
-    if kullanici_adi and kullanici_adi.lower() == 'zenithar':
-        is_zenithar = True
-    elif ad and 'zenithar' in ad.lower():
-        is_zenithar = True
+    # Kısıtlama kontrolü: Komut sadece Zenithar'ın mesajına yanıt olarak (ona karşı) kullanıldıysa engellenecek
+    is_reply_to_zenithar = False
+    if update.message.reply_to_message:
+        hedef_kullanici = update.message.reply_to_message.from_user
+        hedef_kullanici_adi = hedef_kullanici.username
+        hedef_ad = hedef_kullanici.first_name
+        
+        if hedef_kullanici_adi and hedef_kullanici_adi.lower() == 'zenithar':
+            is_reply_to_zenithar = True
+        elif hedef_ad and 'zenithar' in hedef_ad.lower():
+            is_reply_to_zenithar = True
 
-    if is_zenithar:
-        await update.message.reply_text("Ben Berat, yalnızca Derya’ya yavşarım. 😎")
+    # Komut Zenithar'ın mesajına karşı kullanıldıysa doğrudan bu yanıtı ver
+    if is_reply_to_zenithar:
+        await update.message.reply_text("Ben yalnızca Derya’ya yavşarım. 😎")
         return
 
     try:
-        # Isteginize gore durum mesaji guncellendi
         bilgi_mesaji = await update.message.reply_text("Berat oluyorum... 😎⏳")
         
-        # Alintilanan mesaj kontrolü
         alinti_metni = ""
         if update.message.reply_to_message:
             if update.message.reply_to_message.text:
@@ -130,9 +130,8 @@ async def berat_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         prompt = "Senin adın Berat. Karşındaki kişi Derya. Derya'ya çok zekice, ince esprili ve muzip bir şekilde flörtöz sözler söyle (yavşa). "
         
-        # Eger bir mesaj alintilandiysa promptu ona gore ozellestiriyoruz
         if alinti_metni:
-            prompt += f"Derya şu an şu mesajı yazdı veya bu mesaja yanıt veriyorsun: '{alinti_metni}'. Bu mesaja doğrudan ve çok zekice atıfta bulunarak, konuyu ince bir espriyle flörte bağla. "
+            prompt += f"Derya şu an şu mesajı yazdı veya bu mesaja yanıt veriyorsun: '{alinti_metni}'. Bu mesaja doğrudan ve çok zekice atıfta bulunarak, konuyu ince bir esriyle flörte bağla. "
         
         prompt += "Maksimum 50-60 kelime olsun. Asla yıldız sembolü kullanma. Bolca uygun emoji kullanabilirsin."
         
@@ -143,7 +142,7 @@ async def berat_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(temiz_cevap)
         
     except Exception as e:
-        await update.message.reply_text(f"⚠️ Hata oluştu:\n`{str(e)[:500]}`", parse_mode='Markdown')
+        await update.message.reply_text(f"⚠️ Hata oluştu:\n{str(e)[:500]}")
 
 def main():
     if not TELEGRAM_TOKEN or not GEMINI_KEY:
