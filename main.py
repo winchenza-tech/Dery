@@ -9,7 +9,14 @@ import google.generativeai as genai
 # Railway ortam degiskenleri
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+
+# Telegram grup ID'leri negatif sayidir, int tipine cevirmek runtime hatalarini onler
 GRUP_CHAT_ID = os.getenv("GRUP_CHAT_ID")
+if GRUP_CHAT_ID:
+    try:
+        GRUP_CHAT_ID = int(GRUP_CHAT_ID)
+    except ValueError:
+        print("UYARI: GRUP_CHAT_ID tam sayiya donusturulemedi!")
 
 genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
@@ -69,7 +76,7 @@ async def gunluk_iliski_sorusu(context: ContextTypes.DEFAULT_TYPE):
         print("HATA: GRUP_CHAT_ID tanımlanmamış. Mesaj gönderilemedi.")
         return
 
-    prompt = "Berat ve Derya'ya yönelik, ikisinin yanıtlaması için zorlu ve derin bir ilişki sorusu hazırla. Şartlar: Eski sevgililerle ilgili OLMASIN. Düşündürücü ve eğlenceli olsun. Asla o yasaklı karakteri kullanma. Emoji kullanabilirsin."
+    prompt = "Berat ve Derya'ya yönelik, ikisinin yanıtlaması için zorlu ve derin bir crisis/ilişki sorusu hazırla. Şartlar: Eski sevgililerle ilgili OLMASIN. Düşündürücü ve eğlenceli olsun. Asla o yasaklı karakteri kullanma. Emoji kullanabilirsin."
     
     response = model.generate_content(prompt)
     temiz_cevap = metni_temizle(response.text)
@@ -87,6 +94,7 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex(r'^/sor'), sor_komutu))
     app.add_handler(CommandHandler("beratcayavsa", berat_komutu))
 
+    # Zamanlanmis gorev ayari
     turkiye_saati = pytz.timezone('Europe/Istanbul')
     saat_on = datetime.time(hour=10, minute=0, tzinfo=turkiye_saati)
     app.job_queue.run_daily(gunluk_iliski_sorusu, saat_on)
