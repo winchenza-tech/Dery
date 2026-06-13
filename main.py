@@ -6,23 +6,18 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import google.generativeai as genai
 
+# Railway ortam degiskenleri
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+GRUP_CHAT_ID = os.getenv("GRUP_CHAT_ID")
 
 genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
-
-aktif_grup_id = None
 
 def metni_temizle(metin):
     if metin:
         return metin.replace(chr(42), '')
     return ""
-
-async def grup_id_yakala(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global aktif_grup_id
-    if update.message and update.message.chat.type in ["group", "supergroup"]:
-        aktif_grup_id = update.message.chat.id
 
 async def sor_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kullanici_adi = update.effective_user.username
@@ -70,9 +65,8 @@ async def berat_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(temiz_cevap)
 
 async def gunluk_iliski_sorusu(context: ContextTypes.DEFAULT_TYPE):
-    global aktif_grup_id
-    if not aktif_grup_id:
-        print("Henüz grup ID yakalanmadı.")
+    if not GRUP_CHAT_ID:
+        print("HATA: GRUP_CHAT_ID tanımlanmamış. Mesaj gönderilemedi.")
         return
 
     prompt = "Berat ve Derya'ya yönelik, ikisinin yanıtlaması için zorlu ve derin bir ilişki sorusu hazırla. Şartlar: Eski sevgililerle ilgili OLMASIN. Düşündürücü ve eğlenceli olsun. Asla o yasaklı karakteri kullanma. Emoji kullanabilirsin."
@@ -80,12 +74,14 @@ async def gunluk_iliski_sorusu(context: ContextTypes.DEFAULT_TYPE):
     response = model.generate_content(prompt)
     temiz_cevap = metni_temizle(response.text)
     
-    await context.bot.send_message(chat_id=aktif_grup_id, text=temiz_cevap)
+    await context.bot.send_message(chat_id=GRUP_CHAT_ID, text=temiz_cevap)
 
 def main():
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    if not TELEGRAM_TOKEN or not GEMINI_KEY:
+        print("HATA: TELEGRAM_BOT_TOKEN veya GEMINI_API_KEY bulunamadı!")
+        return
 
-    app.add_handler(MessageHandler(filters.ChatType.GROUPS, grup_id_yakala), group=1)
+    app = Application.builder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(CommandHandler("sor", sor_komutu))
     app.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex(r'^/sor'), sor_komutu))
