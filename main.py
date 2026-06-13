@@ -6,7 +6,6 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import google.generativeai as genai
 
-# Railway'den eklenecek ortam degiskenleri
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -17,7 +16,6 @@ aktif_grup_id = None
 
 def metni_temizle(metin):
     if metin:
-        # Istenmeyen isareti temizle
         return metin.replace(chr(42), '')
     return ""
 
@@ -58,6 +56,12 @@ async def sor_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(temiz_cevap)
 
 async def berat_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    kullanici_adi = update.effective_user.username
+    
+    if kullanici_adi and kullanici_adi.lower() == 'zenithar':
+        await update.message.reply_text("Ben Berat, yalnızca Derya’ya yavşarım. 😎")
+        return
+
     prompt = "Senin adın Berat. Karşındaki kişi Derya. Derya'ya çok zekice, ince esprili ve muzip bir şekilde flörtöz sözler söyle (yavşa). Maksimum 50-60 kelime olsun. Asla o yasaklı karakteri kullanma. Bolca uygun emoji kullanabilirsin."
     
     response = model.generate_content(prompt)
@@ -81,7 +85,6 @@ async def gunluk_iliski_sorusu(context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # Bot gruptaki herhangi bir mesajdan ID'yi otomatik yakalar
     app.add_handler(MessageHandler(filters.ChatType.GROUPS, grup_id_yakala), group=1)
 
     app.add_handler(CommandHandler("sor", sor_komutu))
