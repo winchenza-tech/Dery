@@ -1,7 +1,5 @@
 import os
 import PIL.Image
-import datetime
-import pytz
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import google.generativeai as genai
@@ -15,6 +13,7 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 
 def metni_temizle(metin):
     if metin:
+        # Markdown yildiz sembolunu temizler
         return metin.replace(chr(42), '')
     return ""
 
@@ -63,19 +62,9 @@ async def berat_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(temiz_cevap)
 
-async def gunluk_iliski_sorusu(context: ContextTypes.DEFAULT_TYPE):
-    # Gorev tetiklendiginde botun bulundugu aktif sohbet alanina mesaji gonderir
-    job = context.job
-    prompt = "Berat ve Derya'ya yönelik, ikisinin yanıtlaması için zorlu ve derin bir ilişki sorusu hazırla. Şartlar: Eski sevgililerle ilgili OLMASIN. Düşündürücü ve eğlenceli olsun. Asla o yasaklı karakteri kullanma. Emoji kullanabilirsin."
-    
-    response = model.generate_content(prompt)
-    temiz_cevap = metni_temizle(response.text)
-    
-    await context.bot.send_message(chat_id=job.chat_id, text=temiz_cevap)
-
 def main():
     if not TELEGRAM_TOKEN or not GEMINI_KEY:
-        print("HATA: TELEGRAM_BOT_TOKEN veya GEMINI_API_KEY bulunamadı!")
+        print("HATA: TELEGRAM_BOT_TOKEN veya GEMINI_API_KEY eksik!")
         return
 
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -84,8 +73,9 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex(r'^/sor'), sor_komutu))
     app.add_handler(CommandHandler("beratcayavsa", berat_komutu))
 
-    print("Bot çalışıyor...")
+    print("Bot aktif, komutlar bekleniyor...")
     app.run_polling()
 
 if __name__ == '__main__':
     main()
+
